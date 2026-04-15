@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculador de Horas</title>
+    <style>
+        :root {
+            --primary: #00e640; /* Verde trânsito/neon */
+            --primary-hover: #00c938;
+            --bg: #000000; /* Fundo preto puro */
+            --surface: #121212; /* Fundo do card mais suave */
+            --text: #ffffff; /* Texto branco */
+            --text-muted: #a1a1aa; /* Texto acinzentado */
+            --border: #333333; /* Bordas escuras */
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: var(--surface);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 30px rgba(0, 230, 64, 0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        h1 { 
+            font-size: 1.5rem; 
+            margin-bottom: 1.5rem; 
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .upload-area {
+            border: 2px dashed var(--border);
+            padding: 2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: block;
+        }
+        .upload-area:hover { 
+            border-color: var(--primary); 
+            background-color: rgba(0, 230, 64, 0.05);
+        }
+        input[type="file"] { display: none; }
+        #file-name { color: var(--text-muted); }
+        button {
+            background: var(--primary);
+            color: #000000; /* Texto preto para alto contraste no botão verde */
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 800;
+            text-transform: uppercase;
+            cursor: pointer;
+            margin-top: 1.5rem;
+            width: 100%;
+            transition: background 0.2s;
+        }
+        button:hover:not(:disabled) { background: var(--primary-hover); }
+        button:disabled { 
+            background: #3f3f46; 
+            color: #71717a;
+            cursor: not-allowed;
+        }
+        #resultado {
+            margin-top: 1.5rem;
+            padding: 1.5rem 1rem;
+            border-radius: 8px;
+            background: #09090b;
+            border: 1px solid var(--border);
+            display: none;
+        }
+        .loading { display: none; margin-top: 1rem; color: var(--primary); font-weight: 500;}
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Cálculo de Horas</h1>
+    
+    <label class="upload-area" id="drop-zone">
+        <span id="file-name">Clique para selecionar o PDF</span>
+        <input type="file" id="pdf-input" accept="application/pdf">
+    </label>
+
+    <button id="btn-calcular">Calcular Total</button>
+    
+    <div class="loading" id="status">Processando relatório...</div>
+
+    <div id="resultado">
+        <div style="font-size: 0.875rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Total de Uso:</div>
+        <div id="total-valor" style="font-size: 2.5rem; font-weight: 900; color: var(--primary); margin: 0.5rem 0;">00:00</div>
+        <div id="pares-info" style="font-size: 0.85rem; color: var(--text-muted);"></div>
+    </div>
+</div>
+
+<script>
+    const input = document.getElementById('pdf-input');
+    const btn = document.getElementById('btn-calcular');
+    const status = document.getElementById('status');
+    const resultado = document.getElementById('resultado');
+
+    const API_URL = 'http://localhost:3000/calcular-horas';
+
+    input.onchange = () => {
+        if (input.files[0]) {
+            document.getElementById('file-name').innerText = input.files[0].name;
+            document.getElementById('file-name').style.color = 'var(--text)';
+        }
+    };
+
+    btn.onclick = async () => {
+        if (!input.files[0]) return alert("Selecione um arquivo PDF primeiro!");
+
+        btn.disabled = true;
+        status.style.display = 'block';
+        resultado.style.display = 'none';
+
+        const formData = new FormData();
+        formData.append('relatorio', input.files[0]);
+
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.erro) throw new Error(data.erro);
+
+            document.getElementById('total-valor').innerText = data.totalHoras;
+            document.getElementById('pares-info').innerText = `Registros contabilizados: ${data.paresProcessados}`;
+            resultado.style.display = 'block';
+
+        } catch (err) {
+            alert("Erro: " + err.message);
+        } finally {
+            btn.disabled = false;
+            status.style.display = 'none';
+        }
+    };
+</script>
+
+</body>
+</html>
